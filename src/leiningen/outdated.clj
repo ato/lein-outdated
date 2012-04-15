@@ -25,7 +25,9 @@
          (last))))
 
 (defn outdated
-  "List dependencies which have new releases available."
+  "List dependencies which have newer versions available.
+
+Use `lein search --update` to update the indexes."
   [project & args]
   (doseq [[dep version & _] (:dependencies project)]
     (when-let [result (latest-version project dep)]

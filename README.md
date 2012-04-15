@@ -18,6 +18,8 @@ Then run `lein outdated` in your project directory:
     [compojure "1.0.2"] is available but we use "1.0.1"
     [cheshire "4.0.0"] is available but we use "2.2.2"
 
+Use `lein search --update` to update the indexes which are searched.
+
 ## Known issues
 
 This is a quick proof of concept.  If a dependency is available in
