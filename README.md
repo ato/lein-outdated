@@ -6,9 +6,11 @@ It uses the Lucene indexes downloaded by `lein search`.
 
 ## Usage
 
+This plugin currently requires Leiningen 2.  You could backport it
+and send me a pull request.
+
 Put `[lein-outdated "0.1.0"]` into the `:plugins` vector of your
-`:user` profile in ~/.lein/profiles.clj, or if you are on Leiningen 1.x do `lein plugin install
-lein-outdated 0.1.0`.
+`:user` profile in ~/.lein/profiles.clj.
 
 Then run `lein outdated` in your project directory:
 
