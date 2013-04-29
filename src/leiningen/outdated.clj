@@ -53,7 +53,10 @@
 
 (defn- latest-artifact [contexts project dep]
   (with-open [response (artifact-search contexts dep)]
-    (first (sort ArtifactInfo/VERSION_COMPARATOR (seq response)))))
+    (letfn [(not-snapshot? [artifact]
+              (not (.endsWith (str (.getArtifactVersion artifact)) "-SNAPSHOT")))]
+      (first (sort ArtifactInfo/VERSION_COMPARATOR
+                   (filter not-snapshot? (seq response)))))))
 
 (defn- latest-version [contexts project dep]
   (str (.getArtifactVersion (latest-artifact contexts project dep))))
