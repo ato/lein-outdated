@@ -1,4 +1,4 @@
-(defproject lein-outdated "1.0.2-SNAPSHOT"
+(defproject lein-outdated "1.1.0-SNAPSHOT"
   :description "Leiningen plugin that lists new published versions of dependencies"
   :url "http://github.com/ato/lein-outdated"
   :license {:name "Eclipse Public License"
