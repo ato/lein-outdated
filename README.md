@@ -8,7 +8,7 @@ It uses the Lucene indexes downloaded by `lein search`.
 
 Requires Leiningen 2.0.0-preview8 or later.
 
-Put `[lein-outdated "1.0.0"]` into the `:plugins` vector of your
+Put `[lein-outdated "1.0.1"]` into the `:plugins` vector of your
 `:user` profile in ~/.lein/profiles.clj.
 
 Then run `lein outdated` in your project directory:
