@@ -3,12 +3,16 @@
 
 ;; ## HTTP/XML Utilities
 
+(defn- id->path
+  [^String s]
+  (.replace s "." "/"))
+
 (defn- build-metadata-url
   "Get URL to maven-metadata.xml of the given package."
   [^String repository-url ^String group-id ^String artifact-id]
   (str repository-url 
        (if (.endsWith repository-url "/") "" "/")
-       group-id "/" artifact-id 
+       (id->path group-id) "/" artifact-id
        "/maven-metadata.xml"))
 
 (defn retrieve-metadata!
@@ -42,6 +46,24 @@
        :qualifier version })
     (assoc :version-str version)))
 
+(defn- qualifier-compare
+  "Compare two qualifier strings. This tries to introduce numeric comparison
+   when using qualifiers like 'alpha5' and 'alpha12'"
+  [q0 q1]
+  (cond (= q0 q1)          0
+        (not q0)           1
+        (not q1)          -1
+        (= q0 "snapshot")  1
+        (= q1 "snapshot") -1
+        :else (or 
+                (when-let [[_ qa ra] (re-find (re-matcher #"^([a-zA-Z_-]*)([0-9]+)$" q0))]
+                  (when-let [[_ qb rb] (re-find (re-matcher #"^([a-zA-Z_-]*)([0-9]+)$" q1))]
+                    (when (= qa qb)
+                      (if (< (Integer/parseInt ra) (Integer/parseInt rb))
+                        -1
+                        1))))
+                (.compareTo q0 q1))))
+
 (defn- version-map-compare
   "Compare two version maps."
   [m0 m1]
@@ -51,12 +73,7 @@
         (< (:minor m1) (:minor m0))              1
         (< (:incremental m0) (:incremental m1)) -1
         (< (:incremental m1) (:incremental m0))  1
-        (= (:qualifier m0) (:qualifier m1))      0
-        (not (:qualifier m0))                    1
-        (not (:qualifier m1))                   -1
-        (= (:qualifier m0) "snapshot")           1
-        (= (:qualifier m1) "snapshot")          -1
-        :else (.compareTo (:qualifier m0) (:qualifier m1))))
+        :else (qualifier-compare (:qualifier m0) (:qualifier m1))))
 
 (defn version-outdated?
   "Check if the first version is outdated."
