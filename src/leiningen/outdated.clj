@@ -1,88 +1,40 @@
 (ns leiningen.outdated
-  (:require [leiningen.search :as search]
-            [leiningen.core.project :as project]
-            [clojure.java.io :as io])
-  (:import (org.apache.lucene.search BooleanQuery BooleanClause$Occur)
-           (org.apache.maven.index.context IndexingContext)
-           (org.apache.maven.index ArtifactInfo IteratorSearchRequest MAVEN)
-           (org.apache.maven.index.creator
-            JarFileContentsIndexCreator MavenPluginArtifactInfoIndexCreator
-            MinimalArtifactInfoIndexCreator)
-           (org.apache.maven.index.expr SourcedSearchExpression)))
+  (:require [leiningen.outdated.utils :as u]
+            [leiningen.core.project :as project]))
 
-;;;; <copied from leiningen.search>
+(defn- get-repository-urls
+  "Get Repository URLs from Project."
+  [project]
+  (->>
+    (:repositories project (:repositories project/defaults))
+    (map second)
+    (map :url)))
 
-(def ^:private default-indexers [(MinimalArtifactInfoIndexCreator.)
-                                 (JarFileContentsIndexCreator.)
-                                 (MavenPluginArtifactInfoIndexCreator.)])
+(defn- check-packages
+  "Check the packages found at the given key in the project map.
+   Will check the given repository urls for metadata."
+  [repos packages]
+  (let [retrieve! (partial u/retrieve-metadata! repos)]
+    (doseq [{:keys [group-id artifact-id version] :as dep} 
+            (map u/dependency-map packages)]
+      (when-let [mta (retrieve! group-id artifact-id)]
+        (when-let [latest (u/latest-version mta)]
+          (when (u/version-outdated? version latest)
+            (println
+              (str "[" (:dependency-str dep) " \"" (:version-str latest) "\"]")
+              "is available but we use"
+              (str "\"" (:version-str version) "\""))))))))
 
-(defn- add-context [[id {:keys [url]}]]
-  (.addIndexingContextForced search/indexer id url nil
-                             (search/index-location url)
-                             url nil default-indexers))
-
-(defn- remove-context [context]
-  (.removeIndexingContext search/indexer context false))
-
-(defn- refresh? [url project]
-  (if-not (:offline? project)
-    (< (.lastModified (io/file (search/index-location url) "timestamp"))
-       (- (System/currentTimeMillis) 86400000))))
-
-(defn- update-indices [project contexts]
-  (let [repositories (map (juxt 
-                            #(.getRepositoryId ^IndexingContext %) 
-                            #(.getRepositoryUrl ^IndexingContext %)
-                            identity) contexts)]
-    (when (some #(refresh? (second %) project) repositories)
-      (println "Updating Search Indices. This may take a few minutes ...")
-      (doseq [[id url context] repositories]
-        (when (refresh? url project)
-          (println "*" id url "|" url)
-          (search/update-index ^IndexingContext context))))))
-
-;;;; </copied from leiningen.search>
-
-(defn- construct-subquery [[field expression]]
-  (let [search-expression (SourcedSearchExpression. expression)]
-    (.constructQuery search/indexer field search-expression)))
-
-(defn- construct-query [& field-expr-pairs]
-  (let [query (BooleanQuery.)]
-   (doseq [subquery (map construct-subquery (partition 2 field-expr-pairs))]
-     (.add query subquery BooleanClause$Occur/MUST))
-   query))
-
-(defn- artifact-search [context dep]
-  (let [q (construct-query MAVEN/GROUP_ID (or (namespace dep) (name dep))
-                           MAVEN/ARTIFACT_ID (name dep))
-        request (IteratorSearchRequest. q context)]
-    (.searchIterator search/indexer request)))
-
-(defn- latest-artifact [contexts project dep]
-  (with-open [response (artifact-search contexts dep)]
-    (letfn [(not-snapshot? [artifact]
-              (not (.endsWith (str (.getArtifactVersion artifact)) "-SNAPSHOT")))]
-      (first (sort ArtifactInfo/VERSION_COMPARATOR
-                   (filter not-snapshot? (seq response)))))))
-
-(defn- latest-version [contexts project dep]
-  (str (.getArtifactVersion (latest-artifact contexts project dep))))
-
-(defn- get-repos [project]
-  (:repositories project (:repositories project/defaults)))
+(def ^:private KEYS
+  "Mapping of command-line parameter to project map key
+   containing package vectors."
+  {":dependencies" :dependencies
+   ":plugins" :plugins})
 
 (defn outdated
   "List dependencies which have newer versions available."
   [project & args]
-  (let [contexts (doall (map add-context (:repositories project)))]
-    (try
-      (update-indices project contexts)
-      (doseq [[dep version & _] (:dependencies project)]
-        (when-let [latest (latest-version contexts project dep)]
-          (when (not= version latest)
-            (println (pr-str [dep latest])
-                     "is available but we use"
-                     (pr-str version)))))
-      (finally
-       (doall (map remove-context contexts))))))
+  (let [repos (get-repository-urls project)]
+    (doseq [^String s (or (seq args) [":dependencies"])]
+      (when-let [k (get KEYS s)]
+        (check-packages repos (get project k))))))
