@@ -3,6 +3,7 @@
             [leiningen.core.project :as project]
             [clojure.java.io :as io])
   (:import (org.apache.lucene.search BooleanQuery BooleanClause$Occur)
+           (org.apache.maven.index.context IndexingContext)
            (org.apache.maven.index ArtifactInfo IteratorSearchRequest MAVEN)
            (org.apache.maven.index.creator
             JarFileContentsIndexCreator MavenPluginArtifactInfoIndexCreator
@@ -29,9 +30,16 @@
        (- (System/currentTimeMillis) 86400000))))
 
 (defn- update-indices [project contexts]
-  (doseq [context contexts]
-    (when (refresh? (.getRepositoryUrl context) project)
-      (search/update-index context))))
+  (let [repositories (map (juxt 
+                            #(.getRepositoryId ^IndexingContext %) 
+                            #(.getRepositoryUrl ^IndexingContext %)
+                            identity) contexts)]
+    (when (some #(refresh? (second %) project) repositories)
+      (println "Updating Search Indices. This may take a few minutes ...")
+      (doseq [[id url context] repositories]
+        (when (refresh? url project)
+          (println "*" id url "|" url)
+          (search/update-index ^IndexingContext context))))))
 
 ;;;; </copied from leiningen.search>
 
