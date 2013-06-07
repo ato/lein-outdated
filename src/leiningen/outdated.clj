@@ -28,13 +28,13 @@
 (def ^:private KEYS
   "Mapping of command-line parameter to project map key
    containing package vectors."
-  {":dependencies" :dependencies
-   ":plugins" :plugins})
+  {":dependencies" [:dependencies]
+   ":plugins" [:plugins]
+   ":all" [:dependencies :plugins]})
 
 (defn outdated
   "List dependencies which have newer versions available."
   [project & args]
   (let [repos (get-repository-urls project)]
-    (doseq [^String s (or (seq args) [":dependencies"])]
-      (when-let [k (get KEYS s)]
-        (check-packages repos (get project k))))))
+    (doseq [k (distinct (mapcat KEYS (or (seq args) [":dependencies"])))]
+      (check-packages repos (get project k)))))
