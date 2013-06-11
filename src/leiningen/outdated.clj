@@ -59,7 +59,8 @@
                    (filter not-snapshot? (seq response)))))))
 
 (defn- latest-version [contexts project dep]
-  (str (.getArtifactVersion (latest-artifact contexts project dep))))
+  (if-let [artifact (latest-artifact contexts project dep)]
+    (str (.getArtifactVersion artifact))))
 
 (defn- get-repos [project]
   (:repositories project (:repositories project/defaults)))
