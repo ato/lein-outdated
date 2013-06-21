@@ -2,7 +2,7 @@
 
 **This project has been superseded by [lein-ancient](https://github.com/xsc/lein-ancient) and is now officialy unmaintained.**
 
-I highly recommend switching to lein-ancient. It's more accurate, faster and more capabable.
+I highly recommend switching to lein-ancient. It's more accurate, faster and more capable.
 
 ## About
 
