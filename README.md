@@ -21,7 +21,7 @@ Then run `lein outdated` in your project directory:
 
 ## License
 
-Copyright © 2012 Alex Osborne
+Copyright © 2012 Alex Osborne and contributors
 
 Parts based on code from Leiningen.
 
