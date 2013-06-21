@@ -1,4 +1,10 @@
-# lein-outdated
+# lein-outdated is outdated
+
+**This project has been superseded by [lein-ancient](https://github.com/xsc/lein-ancient) and is now officialy unmaintained.**
+
+I highly recommend switching to lein-ancient. It's more accurate, faster and more capabable.
+
+## About
 
 A Leiningen plugin that lists newer available versions of dependencies.
 
